@@ -1,19 +1,32 @@
 # Dependencies
 node_modules/
-/.pnp
-.pnp.js
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build output
+dist/
+build/
+
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # Testing
 /coverage
 
-# Production
-/build
-/dist
-
 # Misc
-.DS_Store
-.env
-.env.local
 .env.development.local
 .env.test.local
 .env.production.local
@@ -24,16 +37,7 @@ artifacts/
 typechain/
 typechain-types/
 
-# IDE
-.idea/
-.vscode/
-*.swp
-*.swo
-
 # Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 logs
 *.log
 

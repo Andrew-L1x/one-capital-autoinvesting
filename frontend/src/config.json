@@ -1,0 +1,22 @@
+{
+    "CONTRACT_ADDRESSES": {
+        "PORTFOLIO_FACTORY": "",
+        "PORTFOLIO": "",
+        "L1X_SWAPPER": "",
+        "AUTO_BALANCER": "",
+        "MOCK_TOKEN_1": "",
+        "MOCK_TOKEN_2": "",
+        "L1X_BRIDGE": "0xf650162aF059734523E4Be23Ec5bAB9a5b878f57"
+    },
+    "NETWORK_CONFIG": {
+        "chainId": "0x1A4",
+        "chainName": "L1X Testnet",
+        "rpcUrls": ["https://rpc.testnet.layeronex.net"],
+        "nativeCurrency": {
+            "name": "L1X",
+            "symbol": "L1X",
+            "decimals": 18
+        },
+        "blockExplorerUrls": ["https://explorer.testnet.layeronex.net"]
+    }
+} 

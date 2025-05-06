@@ -58,6 +58,7 @@ import {
 } from '@chakra-ui/react';
 import PortfolioABI from './contracts/Portfolio.json';
 import L1XSwapWidget from './components/L1XSwapWidget';
+import config from './config.json';
 
 // Register ChartJS components
 ChartJS.register(
@@ -71,97 +72,40 @@ ChartJS.register(
   LineElement
 );
 
-// Common token list with addresses and symbols
+// Update the common tokens list to include our mock tokens
 const COMMON_TOKENS = [
   {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+    symbol: 'MT1',
+    name: 'Mock Token 1',
+    address: '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
     decimals: 18,
-    logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png'
+    logo: 'https://cryptologos.cc/logos/ethereum-eth-logo.png' // Using ETH logo as placeholder
   },
   {
-    symbol: 'USDC',
-    name: 'USD Coin',
-    address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    decimals: 6,
-    logo: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png'
-  },
-  {
-    symbol: 'USDT',
-    name: 'Tether',
-    address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    decimals: 6,
-    logo: 'https://cryptologos.cc/logos/tether-usdt-logo.png'
-  },
-  {
-    symbol: 'WBTC',
-    name: 'Wrapped Bitcoin',
-    address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599',
-    decimals: 8,
-    logo: 'https://cryptologos.cc/logos/wrapped-bitcoin-wbtc-logo.png'
-  },
-  {
-    symbol: 'DAI',
-    name: 'Dai Stablecoin',
-    address: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    symbol: 'MT2',
+    name: 'Mock Token 2',
+    address: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
     decimals: 18,
-    logo: 'https://cryptologos.cc/logos/multi-collateral-dai-dai-logo.png'
-  },
-  {
-    symbol: 'LINK',
-    name: 'Chainlink',
-    address: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
-    decimals: 18,
-    logo: 'https://cryptologos.cc/logos/chainlink-link-logo.png'
-  },
-  {
-    symbol: 'UNI',
-    name: 'Uniswap',
-    address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-    decimals: 18,
-    logo: 'https://cryptologos.cc/logos/uniswap-uni-logo.png'
-  },
-  {
-    symbol: 'AAVE',
-    name: 'Aave',
-    address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
-    decimals: 18,
-    logo: 'https://cryptologos.cc/logos/aave-aave-logo.png'
-  },
-  {
-    symbol: 'SNX',
-    name: 'Synthetix',
-    address: '0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F',
-    decimals: 18,
-    logo: 'https://cryptologos.cc/logos/synthetix-network-token-snx-logo.png'
-  },
-  {
-    symbol: 'YFI',
-    name: 'yearn.finance',
-    address: '0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e',
-    decimals: 18,
-    logo: 'https://cryptologos.cc/logos/yearn-finance-yfi-logo.png'
+    logo: 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png' // Using USDC logo as placeholder
   }
 ];
+
+// Update the usage of CONTRACT_ADDRESSES and NETWORK_CONFIG
+const { CONTRACT_ADDRESSES, NETWORK_CONFIG } = config;
 
 const App = () => {
   const [portfolio, setPortfolio] = useState<ethers.Contract | null>(null);
   const [assets, setAssets] = useState<{ address: string; weight: number }[]>([
     {
-      address: COMMON_TOKENS[0].address, // ETH
+      address: COMMON_TOKENS[0].address, // Mock Token 1
       weight: 60
     },
     {
-      address: COMMON_TOKENS[1].address, // USDC
-      weight: 25
-    },
-    {
-      address: COMMON_TOKENS[3].address, // WBTC
-      weight: 15
+      address: COMMON_TOKENS[1].address, // Mock Token 2
+      weight: 40
     }
   ]);
-  const [balances, setBalances] = useState<number[]>([0, 0, 0]);
+  const [balances, setBalances] = useState<number[]>([0, 0]);
   const [isPortfolioOwner, setIsPortfolioOwner] = useState(false);
   const [portfolioBalance, setPortfolioBalance] = useState(0);
   const [depositAmount, setDepositAmount] = useState('0');
@@ -186,37 +130,79 @@ const App = () => {
   useEffect(() => {
     const initializeContract = async () => {
       try {
-        if (window.ethereum) {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
+        if (window.l1xWallet) {
+          // Check if we're on the correct network
+          const chainId = await window.l1xWallet.request({ method: 'eth_chainId' });
+          if (chainId !== NETWORK_CONFIG.chainId) {
+            try {
+              // Try to switch to the correct network
+              await window.l1xWallet.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: NETWORK_CONFIG.chainId }],
+              });
+            } catch (switchError: any) {
+              // This error code indicates that the chain has not been added to L1X Wallet
+              if (switchError.code === 4902) {
+                try {
+                  await window.l1xWallet.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [NETWORK_CONFIG],
+                  });
+                } catch (addError) {
+                  throw new Error('Failed to add network to L1X Wallet');
+                }
+              } else {
+                throw switchError;
+              }
+            }
+          }
+
+          const provider = new ethers.providers.Web3Provider(window.l1xWallet);
           await provider.send("eth_requestAccounts", []); // Request account access
           const signer = provider.getSigner();
           
-          // Get the first test account from Hardhat
-          const accounts = await provider.listAccounts();
-          const testAccount = accounts[0];
-          
-          // Create a mock contract instance
-          const mockContract = new ethers.Contract(
-            testAccount, // Use the test account as the contract address for now
+          // Create contract instance with the actual deployed address
+          const portfolioContract = new ethers.Contract(
+            CONTRACT_ADDRESSES.PORTFOLIO,
             PortfolioABI.abi,
             signer
           );
           
-          setPortfolio(mockContract);
-          setIsPortfolioOwner(true); // Set to true for testing
+          setPortfolio(portfolioContract);
+          
+          // Check if the current user is the portfolio owner
+          const owner = await portfolioContract.owner();
+          const currentAddress = await signer.getAddress();
+          setIsPortfolioOwner(owner.toLowerCase() === currentAddress.toLowerCase());
+          
           setIsLoading(false);
         } else {
-          setError("Please install MetaMask to use this application");
+          setError("Please install L1X Wallet to use this application");
           setIsLoading(false);
         }
       } catch (error) {
         console.error("Failed to initialize contract:", error);
-        setError("Failed to initialize contract. Please make sure you're connected to the Hardhat network.");
+        setError("Failed to initialize contract. Please make sure you're connected to the L1X Testnet.");
         setIsLoading(false);
       }
     };
 
     initializeContract();
+
+    // Listen for network changes
+    if (window.l1xWallet) {
+      window.l1xWallet.on('chainChanged', () => {
+        window.location.reload();
+      });
+    }
+
+    return () => {
+      if (window.l1xWallet) {
+        window.l1xWallet.removeListener('chainChanged', () => {
+          window.location.reload();
+        });
+      }
+    };
   }, []);
 
   const handleCreatePortfolio = async () => {

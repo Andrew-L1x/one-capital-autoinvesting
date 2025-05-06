@@ -1,13 +1,39 @@
-# Sample Hardhat Project
+# EVM Swap
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+A decentralized protocol for cross-chain asset swaps on EVM-compatible chains.
 
-Try running some of the following tasks:
+## Features
 
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat ignition deploy ./ignition/modules/Lock.js
+- Cross-chain asset swaps
+- Portfolio management
+- Automated rebalancing
+- Price impact protection
+- Slippage tolerance
+
+## Setup
+
+1. Install dependencies:
+```bash
+npm install
 ```
+
+2. Configure environment variables:
+```bash
+cp .env.example .env
+```
+
+3. Run tests:
+```bash
+npm test
+```
+
+## Development
+
+- Built with Solidity ^0.8.19
+- Uses Hardhat for development and testing
+- Integrates with Chainlink price feeds
+- Supports multiple EVM chains
+
+## License
+
+MIT
