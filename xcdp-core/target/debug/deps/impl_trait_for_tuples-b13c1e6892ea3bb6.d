@@ -1,0 +1,8 @@
+C:\Users\asign\onex-capital\one-capital-autoinvesting\xcdp-core\target\debug\deps\impl_trait_for_tuples-b13c1e6892ea3bb6.dll: C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\lib.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\full_automatic.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\semi_automatic.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\utils.rs
+
+C:\Users\asign\onex-capital\one-capital-autoinvesting\xcdp-core\target\debug\deps\impl_trait_for_tuples-b13c1e6892ea3bb6.d: C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\lib.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\full_automatic.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\semi_automatic.rs C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\utils.rs
+
+C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\lib.rs:
+C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\full_automatic.rs:
+C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\semi_automatic.rs:
+C:\Users\asign\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\impl-trait-for-tuples-0.2.3\src\utils.rs:

@@ -9,5 +9,7 @@ interface Window {
     on: (event: string, callback: (...args: any[]) => void) => void;
     removeListener: (event: string, callback: (...args: any[]) => void) => void;
     isL1X: boolean;
+    isConnected: boolean;
+    enable: () => Promise<void>;
   };
 } 

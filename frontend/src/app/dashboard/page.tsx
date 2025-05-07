@@ -1,240 +1,290 @@
 'use client'
 
-import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
-import { ArrowUpRight, ArrowDownRight, Plus, Trash2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowUpRight, ArrowDownRight, Plus, Minus, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Layout } from '@/components/layout'
-import { useState } from 'react'
+import { AssetAllocationBuilder } from '@/components/AssetAllocationBuilder'
+import { useAssetStore } from '@/lib/store'
+import { getTokenPrices, subscribeToTokenPrices, type PriceData } from '@/lib/price-feed'
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts'
 
-const defaultTokens = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'L1X', name: 'L1X' },
-  { symbol: 'MATIC', name: 'Polygon' },
-  { symbol: 'SOL', name: 'Solana' },
-  { symbol: 'AVAX', name: 'Avalanche' },
-  { symbol: 'BNB', name: 'BNB Chain' },
-  { symbol: 'ARB', name: 'Arbitrum' },
-  { symbol: 'OP', name: 'Optimism' },
-  { symbol: 'USDC', name: 'USD Coin' },
-]
-
-const performanceData = [
-  { date: 'Jan', value: 100000 },
-  { date: 'Feb', value: 105000 },
-  { date: 'Mar', value: 110000 },
-  { date: 'Apr', value: 108000 },
-  { date: 'May', value: 115000 },
-  { date: 'Jun', value: 125000 },
-]
+const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF7C43', '#A4DE6C', '#D0ED57']
 
 export default function DashboardPage() {
-  const [tokens, setTokens] = useState([
-    { symbol: 'BTC', allocation: 40, color: '#F7931A' },
-    { symbol: 'ETH', allocation: 30, color: '#627EEA' },
-    { symbol: 'L1X', allocation: 30, color: '#1D3F9D' },
-  ])
+  const [isAutoRebalance, setIsAutoRebalance] = useState(false)
+  const [isConnected, setIsConnected] = useState(true)
+  const { assets, setAssets } = useAssetStore()
+  const [prices, setPrices] = useState<Record<string, PriceData>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [depositAmount, setDepositAmount] = useState<string>('0')
 
-  const handleAddToken = () => {
-    if (tokens.length >= defaultTokens.length) return // Prevent adding more tokens than available
+  useEffect(() => {
+    const symbols = assets.map(asset => asset.symbol)
+    let cleanup: (() => void) | undefined
 
-    // Find the token with the highest allocation
-    const highestAllocationToken = tokens.reduce((prev, current) => 
-      (prev.allocation > current.allocation) ? prev : current
+    const initPrices = async () => {
+      try {
+        setIsLoading(true)
+        cleanup = await subscribeToTokenPrices(symbols, setPrices)
+        setIsLoading(false)
+      } catch (error) {
+        console.error('Failed to initialize price feed:', error)
+        setIsLoading(false)
+      }
+    }
+
+    initPrices()
+
+    return () => {
+      if (cleanup) {
+        cleanup()
+      }
+    }
+  }, [assets])
+
+  if (!isConnected) {
+    return (
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="text-center">
+          <h2 className="mb-4 text-2xl font-bold">Connect Your Wallet</h2>
+          <p className="mb-8 text-muted-foreground">
+            Please connect your wallet to view your portfolio
+          </p>
+          <Button onClick={() => setIsConnected(true)}>Connect Wallet</Button>
+        </div>
+      </div>
     )
-    
-    // Calculate the new allocation (take 10% from the highest allocation)
-    const reductionAmount = 10
-    const newTokens = tokens.map(token => {
-      if (token.symbol === highestAllocationToken.symbol) {
-        return {
-          ...token,
-          allocation: token.allocation - reductionAmount
-        }
-      }
-      return token
-    })
-
-    // Add the new token with the taken percentage
-    setTokens([
-      ...newTokens,
-      { symbol: 'BTC', allocation: reductionAmount, color: '#F7931A' }
-    ])
   }
 
-  const handleRemoveToken = (index: number) => {
-    setTokens(tokens.filter((_, i) => i !== index))
-  }
+  // Calculate total portfolio value and 24h change
+  const totalValue = assets.reduce((sum, asset) => {
+    const price = prices[asset.symbol]?.current_price || 0
+    return sum + (price * (asset.amount || 0))
+  }, 0)
 
-  const handleTokenChange = (index: number, symbol: string) => {
-    const newTokens = [...tokens]
-    const token = defaultTokens.find(t => t.symbol === symbol)
-    if (token) {
-      newTokens[index] = {
-        ...newTokens[index],
-        symbol: token.symbol,
-        color: token.symbol === 'BTC' ? '#F7931A' : 
-               token.symbol === 'ETH' ? '#627EEA' : 
-               token.symbol === 'L1X' ? '#1D3F9D' :
-               '#' + Math.floor(Math.random()*16777215).toString(16)
-      }
-      setTokens(newTokens)
-    }
-  }
+  const totalChange24h = assets.reduce((sum, asset) => {
+    const price = prices[asset.symbol]
+    if (!price) return sum
+    const value = (asset.amount || 0) * price.current_price
+    return sum + (value * (price.price_change_percentage_24h / 100))
+  }, 0)
 
-  const handleAllocationChange = (index: number, value: string) => {
-    const newTokens = [...tokens]
-    newTokens[index] = {
-      ...newTokens[index],
-      allocation: parseInt(value) || 0
-    }
-    setTokens(newTokens)
-  }
+  const change24hPercentage = (totalChange24h / (totalValue - totalChange24h)) * 100
 
   return (
-    <Layout>
-      <div className="space-y-8">
-        {/* Portfolio Overview */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-muted-foreground">Total Portfolio Value</h3>
-            <p className="mt-2 text-3xl font-bold">$125,000.00</p>
-            <div className="mt-2 flex items-center text-sm text-green-500">
-              <ArrowUpRight className="mr-1 h-4 w-4" />
-              +2.5% ($3,125.00)
-            </div>
+    <div className="container space-y-8 py-8">
+      {/* Portfolio Overview */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-lg border bg-card p-6">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              Total Value
+            </h3>
           </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-muted-foreground">24h Change</h3>
-            <div className="mt-2 flex items-center gap-2">
-              <p className="text-3xl font-bold text-green-500">+2.5%</p>
-              <ArrowUpRight className="h-5 w-5 text-green-500" />
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">$3,125.00</p>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-muted-foreground">Auto-Rebalance</h3>
-            <div className="mt-2 flex items-center gap-4">
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-              </label>
-              <select className="rounded-md border border-input bg-background px-3 py-1 text-sm">
-                <option>Daily</option>
-                <option>Weekly</option>
-                <option>Quarterly</option>
-                <option>Annually</option>
-              </select>
-            </div>
-          </div>
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h3 className="text-sm font-medium text-muted-foreground">Last Rebalance</h3>
-            <p className="mt-2 text-3xl font-bold">2 days ago</p>
-            <Button variant="outline" size="sm" className="mt-2">
-              Rebalance Now
-            </Button>
+          <div className="mt-2">
+            <span className="text-2xl font-bold">
+              ${totalValue.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
           </div>
         </div>
 
-        {/* Asset Allocation and Distribution */}
-        <div className="grid gap-8 md:grid-cols-2">
-          {/* Allocation Builder */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold">Asset Allocation</h2>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-2"
-                onClick={handleAddToken}
-              >
-                <Plus className="h-4 w-4" />
-                Add Token
-              </Button>
-            </div>
-            <div className="space-y-4">
-              {tokens.map((token, index) => (
-                <div key={index} className="flex items-center gap-4">
-                  <select 
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={token.symbol}
-                    onChange={(e) => handleTokenChange(index, e.target.value)}
-                  >
-                    {defaultTokens.map((t) => (
-                      <option key={t.symbol} value={t.symbol}>
-                        {t.name} ({t.symbol})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    value={token.allocation}
-                    onChange={(e) => handleAllocationChange(index, e.target.value)}
-                    className="w-24 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    placeholder="%"
-                  />
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive"
-                    onClick={() => handleRemoveToken(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
+        <div className="rounded-lg border bg-card p-6">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-muted-foreground">
+              24h Change
+            </h3>
           </div>
-
-          {/* Pie Chart */}
-          <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="text-lg font-semibold mb-6">Portfolio Distribution</h2>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={tokens}
-                    dataKey="allocation"
-                    nameKey="symbol"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    label={({ symbol, allocation }) => `${symbol} ${allocation}%`}
-                  >
-                    {tokens.map((token) => (
-                      <Cell key={token.symbol} fill={token.color} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Performance Graph */}
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-          <h2 className="text-lg font-semibold mb-6">Portfolio Performance</h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={performanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip
-                  formatter={(value) => [`$${value.toLocaleString()}`, 'Portfolio Value']}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#1D3F9D"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="mt-2 flex items-center gap-2">
+            <span className="text-2xl font-bold">
+              ${Math.abs(totalChange24h).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </span>
+            <span
+              className={`flex items-center text-sm ${
+                change24hPercentage >= 0 ? 'text-green-500' : 'text-red-500'
+              }`}
+            >
+              {change24hPercentage >= 0 ? (
+                <ArrowUpRight className="h-4 w-4" />
+              ) : (
+                <ArrowDownRight className="h-4 w-4" />
+              )}
+              {Math.abs(change24hPercentage).toFixed(2)}%
+            </span>
           </div>
         </div>
       </div>
-    </Layout>
+
+      {/* Deposit and Asset Allocation Side by Side */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Deposit Widget */}
+        <div className="rounded-lg border bg-card p-6">
+          <h3 className="text-lg font-medium mb-4">Deposit</h3>
+          <div className="flex flex-col gap-4">
+            <div>
+              <label htmlFor="depositAmount" className="block text-sm font-medium text-muted-foreground mb-1">
+                Deposit Amount ($)
+              </label>
+              <input
+                id="depositAmount"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter amount"
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={depositAmount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setDepositAmount(value);
+                  const amount = parseFloat(value) || 0;
+                  const newAssets = assets.map(asset => {
+                    const price = prices[asset.symbol]?.current_price || 0;
+                    const allocationAmount = (amount * asset.allocation) / 100;
+                    const quantity = price > 0 ? allocationAmount / price : 0;
+                    return { ...asset, amount: quantity };
+                  });
+                  setAssets(newAssets);
+                }}
+              />
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Estimated Purchase</h4>
+              <ul className="space-y-2">
+                {assets.map((asset) => {
+                  const price = prices[asset.symbol]?.current_price || 0;
+                  const allocationAmount = (parseFloat(depositAmount) * asset.allocation) / 100;
+                  const quantity = price > 0 ? allocationAmount / price : 0;
+                  return (
+                    <li key={asset.symbol} className="flex justify-between text-sm">
+                      <span>{asset.symbol}</span>
+                      <span>{quantity.toFixed(6)}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        {/* Asset Allocation Builder */}
+        <AssetAllocationBuilder />
+      </div>
+
+      {/* Asset Allocation Pie Chart */}
+      <div className="rounded-lg border bg-card p-6 flex flex-col md:flex-row gap-8 items-center justify-center">
+        <div className="w-full md:w-1/2 flex justify-center">
+          <ResponsiveContainer width={300} height={300}>
+            <PieChart>
+              <Pie
+                data={assets}
+                dataKey="allocation"
+                nameKey="symbol"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              >
+                {assets.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip formatter={(value: number) => `${value}%`} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="w-full md:w-1/2">
+          <h3 className="text-lg font-medium mb-4">Asset Allocation</h3>
+          <ul className="space-y-2">
+            {assets.map((asset, index) => (
+              <li key={asset.symbol} className="flex items-center gap-2">
+                <span
+                  className="inline-block w-4 h-4 rounded-full"
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                ></span>
+                <span className="font-medium">{asset.symbol}</span>
+                <span className="ml-auto">{asset.allocation}%</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Token List */}
+      <div className="rounded-lg border bg-card">
+        <div className="border-b p-6">
+          <h3 className="text-lg font-medium">Token List</h3>
+        </div>
+        <div className="p-6">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b text-left text-sm text-muted-foreground">
+                  <th className="pb-4 font-medium">Token</th>
+                  <th className="pb-4 font-medium">Amount</th>
+                  <th className="pb-4 font-medium">Value</th>
+                  <th className="pb-4 font-medium">24h Change</th>
+                  <th className="pb-4 font-medium">Allocation</th>
+                  <th className="pb-4 font-medium"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {assets.map((token) => {
+                  const price = prices[token.symbol]
+                  const value = price ? (token.amount || 0) * price.current_price : 0
+                  const change24h = price?.price_change_percentage_24h || 0
+
+                  return (
+                    <tr key={token.symbol} className="border-b">
+                      <td className="py-4">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{token.symbol}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {token.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-4">{token.amount || '-'}</td>
+                      <td className="py-4">
+                        ${value.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="py-4">
+                        <span
+                          className={`flex items-center ${
+                            change24h >= 0 ? 'text-green-500' : 'text-red-500'
+                          }`}
+                        >
+                          {change24h >= 0 ? (
+                            <ArrowUpRight className="h-4 w-4" />
+                          ) : (
+                            <ArrowDownRight className="h-4 w-4" />
+                          )}
+                          {Math.abs(change24h).toFixed(2)}%
+                        </span>
+                      </td>
+                      <td className="py-4">{token.allocation}%</td>
+                      <td className="py-4">
+                        <Button variant="ghost" size="sm">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 } 

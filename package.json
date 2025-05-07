@@ -2,14 +2,6 @@
   "name": "evm_swap",
   "version": "1.0.0",
   "description": "A decentralized protocol for cross-chain asset swaps on EVM-compatible chains",
-  "main": "index.js",
-  "scripts": {
-    "test": "hardhat test",
-    "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.js",
-    "deploy:testnet": "hardhat run scripts/deploy.js --network bscTestnet",
-    "deploy:mainnet": "hardhat run scripts/deploy.js --network bscMainnet"
-  },
   "keywords": [
     "blockchain",
     "defi",
@@ -17,15 +9,35 @@
     "ethereum",
     "bsc"
   ],
-  "author": "",
+  "homepage": "https://github.com/Andrew-L1x/one-capital-autoinvesting#readme",
+  "bugs": {
+    "url": "https://github.com/Andrew-L1x/one-capital-autoinvesting/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Andrew-L1x/one-capital-autoinvesting.git"
+  },
   "license": "MIT",
-  "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "hardhat": "^2.19.0"
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js",
+    "deploy:testnet": "hardhat run scripts/deploy.js --network bscTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy.js --network bscMainnet"
   },
   "dependencies": {
     "@chainlink/contracts": "^0.8.0",
     "@openzeppelin/contracts": "^5.0.0",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
   }
 }

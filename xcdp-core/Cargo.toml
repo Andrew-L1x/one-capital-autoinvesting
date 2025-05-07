@@ -3,16 +3,28 @@ name = "xcdp-core"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "xcdp-cli"
+path = "src/main.rs"
+
 [lib]
-crate-type = ["cdylib"]
+name = "xcdp_core"
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 borsh = { version = "0.9", features = ["const-generics"] }
-l1x-sdk = { version = "0.3.1", features = ["contract"] }
+l1x-sdk = "0.3.1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.21.0"
 ethers = { version = "2.0.11", features = ["abigen"] }
 getrandom = { version = "0.2.10", features = ["js"] }
 hex = "0.4"
-log = "0.4.20" 
+log = "0.4.20"
+thiserror = "1.0"
+async-trait = "0.1"
+tokio = { version = "1.0", features = ["full"] }
+clap = { version = "4.4", features = ["derive"] }
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full", "test-util"] } 

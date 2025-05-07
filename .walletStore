@@ -1,0 +1,9 @@
+{
+  "defaultAccount": "0x9630daab83d613727900d8eb7b6fd4a1f08bf379",
+  "wallets": [
+    {
+      "address": "0x9630daab83d613727900d8eb7b6fd4a1f08bf379",
+      "privateKey": "0x5e91de199697d59933184743a4b705101fac8f64b753800dcf92cb9d60574200"
+    }
+  ]
+}
