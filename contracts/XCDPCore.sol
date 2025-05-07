@@ -3,8 +3,12 @@ pragma solidity ^0.8.0;
 
 /* XCDP Core to implement the interface.*/
 contract XCDPCore {
-    address public gatewayContractAddress = 0x0000000000000000000000000000000000000000; // Will be updated with actual gateway address
+    address public gatewayContractAddress;
     mapping(bytes32 => XCDPReceiveMessage) public XCDPData;
+
+    constructor(address _gatewayContractAddress) {
+        gatewayContractAddress = _gatewayContractAddress;
+    }
 
     /* Sending message instruction. You can make this
     compatible with Destination or if you want to transform

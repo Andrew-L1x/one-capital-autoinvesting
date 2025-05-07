@@ -6,7 +6,10 @@
         "AUTO_BALANCER": "",
         "MOCK_TOKEN_1": "",
         "MOCK_TOKEN_2": "",
-        "L1X_BRIDGE": "0xf650162aF059734523E4Be23Ec5bAB9a5b878f57"
+        "L1X_BRIDGE": {
+            "sepolia": "0xf650162aF059734523E4Be23Ec5bAB9a5b878f57",
+            "bscTestnet": "0x77d046D7d733672D44eA2Df53a1663b6CF453432"
+        }
     },
     "NETWORK_CONFIG": {
         "chainId": "0x1A4",

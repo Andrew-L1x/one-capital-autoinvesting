@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import { config } from '../src/config';
-import PortfolioFactory from '../artifacts/contracts/PortfolioFactory.sol/PortfolioFactory.json';
-import Portfolio from '../artifacts/contracts/Portfolio.sol/Portfolio.json';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function main() {
   // Connect to L1X testnet
@@ -12,17 +12,37 @@ async function main() {
   console.log('Network:', await provider.getNetwork());
   console.log('Deployer address:', wallet.address);
 
-  // Deploy PortfolioFactory
-  const factory = await ethers.deployContract('PortfolioFactory', [
-    config.l1xBridge,
-    config.dexRouter
-  ], wallet);
+  // Get the appropriate bridge address based on the network
+  const network = process.env.NETWORK || 'sepolia';
+  const bridgeAddress = config.l1xBridge[network as keyof typeof config.l1xBridge];
+  
+  if (!bridgeAddress) {
+    throw new Error(`No bridge address configured for network: ${network}`);
+  }
 
-  await factory.waitForDeployment();
-  console.log('PortfolioFactory deployed to:', await factory.getAddress());
+  // Load contract artifacts
+  const portfolioFactoryArtifact = JSON.parse(
+    fs.readFileSync(
+      path.join(__dirname, '../artifacts/contracts/PortfolioFactory.sol/PortfolioFactory.json'),
+      'utf8'
+    )
+  );
+
+  // Deploy PortfolioFactory
+  const factory = new ethers.ContractFactory(
+    portfolioFactoryArtifact.abi,
+    portfolioFactoryArtifact.bytecode,
+    wallet
+  );
+  
+  const factoryContract = await factory.deploy(bridgeAddress, config.dexRouter);
+  await factoryContract.waitForDeployment();
+  
+  const factoryAddress = await factoryContract.getAddress();
+  console.log('PortfolioFactory deployed to:', factoryAddress);
 
   // Deploy initial Portfolio
-  const tx = await factory.createPortfolio(
+  const tx = await factoryContract.createPortfolio(
     config.initialAssets,
     config.initialWeights
   );
@@ -37,9 +57,10 @@ async function main() {
 
   // Save the addresses to a config file
   const addresses = {
-    factory: await factory.getAddress(),
+    factory: factoryAddress,
     portfolio: portfolioAddress,
-    network: config.network
+    network: config.network,
+    bridge: bridgeAddress
   };
 
   console.log('Deployment complete!');

@@ -1,38 +1,73 @@
 const hre = require("hardhat");
 
 async function main() {
-    const [deployer] = await hre.ethers.getSigners();
+    console.log("Starting deployment process...");
+    console.log("Network:", hre.network.name);
 
-    console.log(
-        "Deploying contracts with the account:",
-        deployer.address
-    );
+    try {
+        const [deployer] = await hre.ethers.getSigners();
+        console.log("Using deployer address:", deployer.address);
 
-    console.log("Account balance:", (await deployer.provider.getBalance(deployer.address)).toString());
+        const balance = await deployer.provider.getBalance(deployer.address);
+        console.log("Deployer balance:", hre.ethers.formatEther(balance), "ETH");
 
-    const XCDP = await hre.ethers.getContractFactory("XCDPCore");
-    // Deploy without constructor parameters since the contract doesn't have any
-    const XCDPContract = await XCDP.deploy();
+        if (balance.toString() === '0') {
+            throw new Error("Deployer account has no ETH!");
+        }
 
-    await XCDPContract.waitForDeployment();
+        // Get the network name and set gateway address
+        const network = hre.network.name;
+        let gatewayAddress;
 
-    const contractAddress = await XCDPContract.getAddress();
-    console.log("XCDP contract deployed to:", contractAddress);
+        console.log("Setting gateway address for network:", network);
+        
+        if (network === 'sepolia') {
+            gatewayAddress = "0xf650162aF059734523E4Be23Ec5bAB9a5b878f57";
+        } else if (network === 'bscTestnet') {
+            gatewayAddress = "0x77d046D7d733672D44eA2Df53a1663b6CF453432";
+        } else if (network === 'l1xTestnet') {
+            // For L1X Testnet, we'll use the Sepolia gateway address
+            gatewayAddress = "0xf650162aF059734523E4Be23Ec5bAB9a5b878f57";
+        } else {
+            throw new Error(`Unsupported network: ${network}`);
+        }
+        console.log("Using gateway address:", gatewayAddress);
 
-    // Set the gateway contract address
-    // TODO: Replace with actual gateway address for the network
-    const gatewayAddress = "0x0000000000000000000000000000000000000000"; // Replace with actual gateway address
-    await XCDPContract.setGatewayContractAddress(gatewayAddress);
-    console.log("Gateway contract address set to:", gatewayAddress);
+        console.log("Creating contract factory...");
+        const XCDP = await hre.ethers.getContractFactory("XCDPCore");
+        
+        console.log("Deploying contract...");
+        const XCDPContract = await XCDP.deploy(gatewayAddress);
 
-    // Verify the deployment
-    console.log("\nDeployment verification:");
-    console.log("Current gateway address:", await XCDPContract.gatewayContractAddress());
+        console.log("Waiting for deployment transaction...");
+        await XCDPContract.waitForDeployment();
+
+        const contractAddress = await XCDPContract.getAddress();
+        console.log("\nDeployment successful!");
+        console.log("Contract deployed to:", contractAddress);
+        console.log("Gateway contract address set to:", gatewayAddress);
+
+        console.log("\nVerifying deployment...");
+        const deployedGatewayAddress = await XCDPContract.gatewayContractAddress();
+        console.log("Verified gateway address:", deployedGatewayAddress);
+        
+        if (deployedGatewayAddress.toLowerCase() !== gatewayAddress.toLowerCase()) {
+            console.warn("Warning: Gateway address mismatch!");
+        }
+    } catch (error) {
+        console.error("\nDeployment failed!");
+        console.error("Error details:", error);
+        throw error;
+    }
 }
 
 main()
-    .then(() => process.exit(0))
+    .then(() => {
+        console.log("\nDeployment script completed successfully!");
+        process.exit(0);
+    })
     .catch((error) => {
+        console.error("\nDeployment script failed!");
         console.error(error);
         process.exit(1);
     }); 
